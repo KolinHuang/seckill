@@ -2,7 +2,7 @@
 
 
 
-
+参考自：https://github.com/codingXiaxw/seckill
 
 ### 1. 业务流程描述
 
