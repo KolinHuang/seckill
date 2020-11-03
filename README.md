@@ -511,28 +511,26 @@ mybatis全局配置文件`mybatis-config.xml`
   
 * 或者直接在resources目录下存放XxxMapper.xml文件：
 
-  ![image-20201031150537075](/Users/huangyucai/Library/Application Support/typora-user-images/image-20201031150537075.png)
-
-  然后在在mybatis-config.xml主配置文件中配置：
+  然后在mybatis-config.xml主配置文件中配置：
 
   ```xml
-      <mappers>
+    <mappers>
           <mapper resource="Mapper/SeckillMapper.xml"/>
           <mapper resource="Mapper/SuccessKilledMapper.xml"/>
       </mappers>
   ```
-
+  
   或者在后面的spring-dao.xml配置文件中配置：
 
   ```xml
-      <bean class="org.mybatis.spring.SqlSessionFactoryBean" id="sqlSessionFactory">
+    <bean class="org.mybatis.spring.SqlSessionFactoryBean" id="sqlSessionFactory">
           <property name="dataSource" ref="dataSource"/>
           <!--绑定mybatis配置文件，交给Spring管理-->
           <property name="configLocation" value="classpath:mybatis-config.xml"/>
           <property name="mapperLocations" value="classpath:Mapper/*.xml"/>
       </bean>
   ```
-
+  
   
 
 `SeckillMapper.xml`
@@ -1582,18 +1580,18 @@ public class SeckillController {
 
 秒杀商品列表：
 
-![seckill_list](/Users/huangyucai/Documents/figures/seckill_list.png)
+![seckill_list](https://github.com/KolinHuang/seckill/tree/master/Drawings/seckill_list.png)
 
 秒杀商品详情信息：
 
-![seckill_countdown](/Users/huangyucai/Documents/figures/seckill_countdown.png)
+![seckill_countdown](https://github.com/KolinHuang/seckill/tree/master/Drawings/seckill_countdown.png)
 
-![seckill_start](/Users/huangyucai/Documents/figures/seckill_start.png)
+![seckill_start](https://github.com/KolinHuang/seckill/tree/master/Drawings/seckill_start.png)
 
 秒杀成功：
 
-![seckill_success](/Users/huangyucai/Documents/figures/seckill_success.png)
+![seckill_success](https://github.com/KolinHuang/seckill/tree/master/Drawings/seckill_success.png)
 
 重复秒杀：
 
-![seckill_repeat](/Users/huangyucai/Documents/figures/seckill_repeat.png)
+![seckill_repeat](https://github.com/KolinHuang/seckill/tree/master/Drawings/seckill_repeat.png)
