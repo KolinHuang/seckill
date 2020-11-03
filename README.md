@@ -1580,18 +1580,19 @@ public class SeckillController {
 
 秒杀商品列表：
 
-![seckill_list](https://github.com/KolinHuang/seckill/tree/master/Drawings/seckill_list.png)
+![seckill_list](https://raw.githubusercontent.com/KolinHuang/seckill/master/Drawings/seckill_list.png)
 
 秒杀商品详情信息：
 
-![seckill_countdown](https://github.com/KolinHuang/seckill/tree/master/Drawings/seckill_countdown.png)
+![seckill_countdown](https://raw.githubusercontent.com/KolinHuang/seckill/master/Drawings/seckill_countdown.png)
 
-![seckill_start](https://github.com/KolinHuang/seckill/tree/master/Drawings/seckill_start.png)
+![seckill_start](https://raw.githubusercontent.com/KolinHuang/seckill/master/Drawings/seckill_start.png)
 
 秒杀成功：
 
-![seckill_success](https://github.com/KolinHuang/seckill/tree/master/Drawings/seckill_success.png)
+![seckill_success](https://raw.githubusercontent.com/KolinHuang/seckill/master/Drawings/seckill_success.png)
 
 重复秒杀：
 
-![seckill_repeat](https://github.com/KolinHuang/seckill/tree/master/Drawings/seckill_repeat.png)
+![seckill_repeat](https://raw.githubusercontent.com/KolinHuang/seckill/master/Drawings/seckill_repeat.png)
+
