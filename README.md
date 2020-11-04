@@ -1596,3 +1596,254 @@ public class SeckillController {
 
 ![seckill_repeat](https://raw.githubusercontent.com/KolinHuang/seckill/master/Drawings/seckill_repeat.png)
 
+
+
+### 6. 添加Redis缓存
+
+#### 6.1 整合Dao层
+
+在dao包中创建一个RedisMapper.java文件：
+
+```java
+public class RedisMapper {
+    private final JedisPool jedisPool;
+
+
+    public RedisMapper(String ip, int port){
+        jedisPool = new JedisPool(ip,port);
+    }
+
+    //这是序列化吗
+    private RuntimeSchema<Seckill> schema = RuntimeSchema.createFrom(Seckill.class);
+
+    public Seckill getSeckill(long seckillId){
+        return getSeckill(seckillId,null);
+    }
+
+    /**
+     * 从redis里读数据，如果不存在就返回null
+     * @param seckillId
+     * @param jedis
+     * @return
+     */
+    public Seckill getSeckill(long seckillId, Jedis jedis){
+        boolean hasJedis = jedis != null;
+
+        try{
+            if(!hasJedis){
+                jedis = jedisPool.getResource();
+            }
+            try {
+                String key = getSeckillRedisKey(seckillId);
+                //根据key查询
+                byte[] bytes = jedis.get(key.getBytes());
+                //如果查到了，说明redis里有这个key的缓存，就反序列化，返回seckill对象
+                if(bytes != null){
+                    Seckill seckill = schema.newMessage();
+                    ProtostuffIOUtil.mergeFrom(bytes, seckill,schema);
+                    return seckill;
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+            }finally {
+                if(!hasJedis){
+                    jedis.close();
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private String getSeckillRedisKey(long seckillId){
+        return "seckill:" + seckillId;
+    }
+
+
+    /**
+     * 从redis中先读数据，如果没有，就从数据库中读
+     * 这个Function挺有意思的，学习一下！
+     * @param seckillId
+     * @param getDataFromDb
+     * @return
+     */
+    public Seckill getOrPutSeckill(long seckillId, Function<Long, Seckill> getDataFromDb){
+        String lockKey = "seckill:locks:getSeckill:"+seckillId;
+        String lockRequestId = UUID.randomUUID().toString();
+        Jedis jedis = jedisPool.getResource();
+
+        try{
+            //循环争用锁，直到拿到了锁
+            for(;;){
+                Seckill seckill = getSeckill(seckillId, jedis);
+                if(seckill != null){
+                    return seckill;
+                }
+                //尝试获取锁
+                boolean getLock = JedisUtils.tryGetDistributedLock(jedis,lockKey,lockRequestId,1000);
+                if (getLock){
+                    //获取到了锁,从数据库拿数据，存redis
+                    seckill = getDataFromDb.apply(seckillId);
+                    putSeckill(seckill, jedis);
+                    return seckill;
+                }
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            //无论如何都要把锁释放
+            JedisUtils.releaseDistributedLock(jedis, lockKey, lockRequestId);
+            jedis.close();
+        }
+        return null;
+    }
+
+    public String putSeckill(Seckill seckill) {
+        return putSeckill(seckill, null);
+    }
+
+    //将Seckill对象序列化后，存入redis
+    public String putSeckill(Seckill seckill, Jedis jedis){
+        boolean hasJedis = jedis != null;
+        try {
+            if(!hasJedis){
+                jedis = jedisPool.getResource();
+            }
+            try {
+                String key = getSeckillRedisKey(seckill.getSeckill_id());
+                byte[] bytes = ProtostuffIOUtil.toByteArray(seckill, schema, LinkedBuffer.allocate(LinkedBuffer.DEFAULT_BUFFER_SIZE));
+                //超时缓存1小时
+                int timeout = 60 * 60;
+                String result = jedis.setex(key.getBytes(), timeout, bytes);
+                return result;
+            }finally {
+                if(!hasJedis){
+                    jedis.close();
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+}
+
+```
+
+需要用到分布式锁，所以创建一个工具类`JedisUtils`，利用`set lock:xx true ex 5 nx`原子操作实现锁。
+
+```java
+public class JedisUtils {
+
+    private static final String LOCK_SUCESS = "OK";
+    private static final Long RELEASE_SUCESS = 1L;
+
+    /**
+     * 尝试获取分布式锁
+     * @param jedis
+     * @param lockKey
+     * @param requestId
+     * @param expireTime
+     * @return
+     */
+    public static boolean tryGetDistributedLock(Jedis jedis, String lockKey,
+                                                String requestId, int expireTime){
+        SetParams setParams = new SetParams();
+        setParams.nx();
+        setParams.ex(expireTime);
+
+        String result = jedis.set(lockKey,requestId,setParams);
+        return LOCK_SUCESS.equals(result);
+    }
+
+
+    /**
+     * 释放分布式锁
+     * @param jedis
+     * @param lockKey
+     * @param requestId
+     * @return
+     */
+    public static boolean releaseDistributedLock(Jedis jedis, String lockKey, String requestId){
+        String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+        Object result = jedis.eval(script, Collections.singletonList(lockKey), Collections.singletonList(requestId));
+
+        return RELEASE_SUCESS.equals(result);
+    }
+
+}
+
+```
+
+在`spring-dao.xml`中配置bean:
+
+```xml
+    <!--redis-->
+    <bean class="com.yucaihuang.dao.cache.RedisMapper" id="redisMapper">
+        <constructor-arg index="0" value="118.31.103.27"/>
+        <constructor-arg index="1" value="6379"/>
+    </bean>
+```
+
+
+
+
+
+#### 6.2 整合Service层
+
+注入`redisMapper`:
+
+```java
+    private RedisMapper redisMapper;
+    public void setRedisMapper(RedisMapper redisMapper) {
+        this.redisMapper = redisMapper;
+    }
+```
+
+修改查询逻辑，优先查询Redis：
+
+```java
+    public Seckill getSeckillById(long seckillId) {
+        return redisMapper.getOrPutSeckill(seckillId, new Function<Long, Seckill>() {
+            public Seckill apply(Long id) {
+                return seckillMapper.queryById(id);
+            }
+        });
+    }
+```
+
+更新Service层依赖注入：
+
+```xml
+    <bean class="com.yucaihuang.service.impl.SeckillServiceImpl" id="seckillServiceImpl">
+        <property name="seckillMapper" ref="seckillMapper"/>
+        <property name="successKilledMapper" ref="successKilledMapper"/>
+        <property name="redisMapper" ref="redisMapper"/>
+    </bean>
+```
+
+
+
+遇到问题
+
+```shell
+Lookup method resolution failed; nested exception is java.lang.IllegalStateE
+```
+
+```shell
+Resolution of declared constructors on bean Class [com.yucaihuang.dao.cache.RedisMapper] from ClassLoader [ParallelWebappClassLoader
+```
+
+是由于更新了pom.xml之后，没有在lib文件下加入依赖。具体：File -> Project Structure -> Artifacts -> WEB-INF -> lib。
+
+
+
+测试：点击链接后，在redis中查询到了相应的键值。
+

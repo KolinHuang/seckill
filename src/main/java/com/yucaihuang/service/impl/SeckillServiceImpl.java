@@ -2,6 +2,7 @@ package com.yucaihuang.service.impl;
 
 import com.yucaihuang.dao.SeckillMapper;
 import com.yucaihuang.dao.SuccessKilledMapper;
+import com.yucaihuang.dao.cache.RedisMapper;
 import com.yucaihuang.dto.Exposer;
 import com.yucaihuang.dto.SeckillExecution;
 import com.yucaihuang.enums.SeckillStatEnum;
@@ -13,6 +14,9 @@ import com.yucaihuang.pojo.SuccessKilled;
 import com.yucaihuang.service.SeckillService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.internal.Function;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
 
@@ -29,8 +33,8 @@ public class SeckillServiceImpl implements SeckillService {
     private final String salt="safjlvllj`asdl.kn";
 
     private SeckillMapper seckillMapper;
-
     private SuccessKilledMapper successKilledMapper;
+    private RedisMapper redisMapper;
 
     public void setSeckillMapper(SeckillMapper seckillMapper) {
         this.seckillMapper = seckillMapper;
@@ -40,12 +44,20 @@ public class SeckillServiceImpl implements SeckillService {
         this.successKilledMapper = successKilledMapper;
     }
 
+    public void setRedisMapper(RedisMapper redisMapper) {
+        this.redisMapper = redisMapper;
+    }
+
     public List<Seckill> getSeckillList() {
         return seckillMapper.queryAll(0,4);
     }
 
     public Seckill getSeckillById(long seckillId) {
-        return seckillMapper.queryById(seckillId);
+        return redisMapper.getOrPutSeckill(seckillId, new Function<Long, Seckill>() {
+            public Seckill apply(Long id) {
+                return seckillMapper.queryById(id);
+            }
+        });
     }
 
     /**

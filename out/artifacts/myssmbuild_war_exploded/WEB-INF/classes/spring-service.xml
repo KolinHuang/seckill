@@ -12,7 +12,9 @@
     <bean class="com.yucaihuang.service.impl.SeckillServiceImpl" id="seckillServiceImpl">
         <property name="seckillMapper" ref="seckillMapper"/>
         <property name="successKilledMapper" ref="successKilledMapper"/>
+        <property name="redisMapper" ref="redisMapper"/>
     </bean>
+
 
 
 
