@@ -217,10 +217,6 @@ create table success_killed(
 #### 3.2 创建实体类
 
 ```java
-package com.yucaihuang.pojo;
-
-import java.util.Date;
-
 public class Seckill {
     private long seckill_id;
     private String name;
@@ -304,10 +300,6 @@ public class Seckill {
 ```
 
 ```java
-package com.yucaihuang.pojo;
-
-import java.util.Date;
-
 public class SuccessKilled {
     private long seckill_id;
     private long user_phone;
@@ -376,14 +368,6 @@ public class SuccessKilled {
 #### 3.3 创建dao接口
 
 ```java
-package com.yucaihuang.dao;
-
-import com.yucaihuang.pojo.Seckill;
-import org.apache.ibatis.annotations.Param;
-
-import java.util.Date;
-import java.util.List;
-
 public interface SeckillMapper {
 
     /**
@@ -470,7 +454,7 @@ mybatis全局配置文件`mybatis-config.xml`
 
 * XxxMapper.xml和XxxMapper.java接口文件放在同个包下，即都放在`com.yucaihuang.dao`下：
 
-  ![image-20201031150351335](/Users/huangyucai/Library/Application Support/typora-user-images/image-20201031150351335.png)
+  ![image-20201031150351335](https://hyc-pic.oss-cn-hangzhou.aliyuncs.com/image-20201031150351335.png)
   
   那么需要在pom.xml下加入以下配置，处理静态资源：
   
@@ -1009,26 +993,6 @@ public class SeckillCloseException extends SeckillException {
 #### 4.4 业务层接口的实现
 
 ```java
-package com.yucaihuang.service.impl;
-
-import com.yucaihuang.dao.SeckillMapper;
-import com.yucaihuang.dao.SuccessKilledMapper;
-import com.yucaihuang.dto.Exposer;
-import com.yucaihuang.dto.SeckillExecution;
-import com.yucaihuang.enums.SeckillStatEnum;
-import com.yucaihuang.exception.RepeatKillException;
-import com.yucaihuang.exception.SeckillCloseException;
-import com.yucaihuang.exception.SeckillException;
-import com.yucaihuang.pojo.Seckill;
-import com.yucaihuang.pojo.SuccessKilled;
-import com.yucaihuang.service.SeckillService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.DigestUtils;
-
-import java.util.Date;
-import java.util.List;
-
 public class SeckillServiceImpl implements SeckillService {
 
 
@@ -1144,8 +1108,6 @@ public class SeckillServiceImpl implements SeckillService {
 由于我们返回的数据是交给前端的，所以秒杀是否成功的状态我们封装到一个枚举类中：
 
 ```java
-package com.yucaihuang.enums;
-
 public enum  SeckillStatEnum {
 
     SUCCESS(1,"秒杀成功"),
@@ -1405,9 +1367,6 @@ public class SeckillController{
 在dto包下创建`SeckillResult.java`类，用于封装md5地址和秒杀结果，给前端传值。
 
 ```java
-package com.yucaihuang.dto;
-
-
 /**
  * 将所有的ajax请求返回类型全部封装成json数据
  * @param <T>
